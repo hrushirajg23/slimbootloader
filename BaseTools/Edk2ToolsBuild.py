@@ -7,6 +7,8 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
+import utils.transport
+import utils.session
 import os
 import sys
 import logging
