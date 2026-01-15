@@ -1,0 +1,6 @@
+#
+# Delta Configuration for Radxa X4
+#
+
+# Start with empty defaults or copy critical overrides from ADL-N RVP if needed.
+# For now, we will rely on defaults and specific HAT updates.

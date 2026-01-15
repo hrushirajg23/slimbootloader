@@ -9,10 +9,11 @@
 #include <Library/PciSegmentLib.h>
 
 // X710 X550 Link Degrade WA
-#define SA_SEG_NUM                   0
 #define SA_MC_BUS                    0
 #define  B_PCIE_ACGR3S2_DRXTERMDQ    BIT4
 #define  R_PCIE_ACGR3S2              0xC50
+
+#include "GpioTableSagePreMem.h"
 
 #define  MTRR_CACHE_UNCACHEABLE      0
 
@@ -794,6 +795,9 @@ DEBUG_CODE_END();
       break;
     case PLATFORM_ID_ADL_N_DDR5_CRB:
       ConfigureGpio (CDATA_NO_TAG, sizeof (mGpioTablePreMemAdlNDdr5Crb) / sizeof (mGpioTablePreMemAdlNDdr5Crb[0]), (UINT8*)mGpioTablePreMemAdlNDdr5Crb);
+      break;
+    case PLATFORM_ID_SAGE:
+      ConfigureGpio (CDATA_NO_TAG, sizeof (mGpioTableSagePreMem) / sizeof (mGpioTableSagePreMem[0]), (UINT8*)mGpioTableSagePreMem);
       break;
     case PLATFORM_ID_ADL_N_LPDDR5_RVP:
     case PLATFORM_ID_ADL_N_UP2PTWL:
