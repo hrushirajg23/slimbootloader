@@ -41,6 +41,7 @@
   WatchDogTimerLib
   TpmLib
   FusaConfigLib
+  HobLib
 
 [Pcd]
   gPlatformModuleTokenSpaceGuid.PcdFramebufferInitEnabled

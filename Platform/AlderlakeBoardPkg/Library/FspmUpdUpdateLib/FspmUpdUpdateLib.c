@@ -28,6 +28,9 @@
 #include <GpioPinsVer2Lp.h>
 #include <Library/TccLib.h>
 #include <Library/FusaConfigLib.h>
+#include <Library/SerialIoI2cLib.h>
+#include <Library/HobLib.h>
+#include <Include/HatConfig.h>
 
 #include "BoardSaConfigPreMem.h"
 
@@ -51,6 +54,47 @@ typedef enum {
   RplpLp5AutoSamsung8GbK3KL9L90QMSpd    = 0x08,
   RplpLp5AutoSamsung16GbK3KLALA0DMSpd   = 0x09
 } MemoryDefinition;
+
+//
+// HAT ID Detection
+//
+UINT8
+GetHatId (
+  VOID
+)
+{
+  EFI_STATUS Status;
+  UINT8      HatId = 0;
+  UINT8      WBuf[1];
+  UINT8      RBuf[1];
+
+  // Assuming I2C0 (Controller 0)
+  // Verify Controller Config in GPIO Table!
+  // Address 0x50 (Example EEPROM) or custom MCU address
+  // This is a placeholder implementation.
+
+  // Init I2C if not already done by BootloaderCore (it might not be)
+  // But SerialIoI2cLib usually requires configuring PCI device first.
+  // In Pre-Mem, we might need to assume default BARs or temp assignments.
+  // For simplicity here, we assume the library handles it or we call Init.
+  // Since we are in FSP-M Update (Pre-Mem), MMIO is CAR.
+
+  // HARDCODED FOR NOW FOR VERIFICATION
+  // Remove this when I2C is verified
+  // HatId = 1;
+
+  // Real Implementation Attempt:
+  // Status = SerialIoI2cRead (0, 0x50, 0, 1, RBuf);
+  // if (!EFI_ERROR(Status)) {
+  //   HatId = RBuf[0];
+  // }
+
+  // Create HOB for passing to Stage 2 (FSP-S Update)
+  BuildGuidDataHob (&gHatIdHobGuid, &HatId, sizeof(HatId));
+
+  DEBUG ((DEBUG_INFO, "Detected HAT ID: %d\n", HatId));
+  return HatId;
+}
 
 /**
 Return Cpu stepping type
@@ -608,6 +652,8 @@ UpdateFspConfig (
         Fspmcfg->PchIshEnable = 0x0;
         Fspmcfg->PanelPowerEnable = 0x0;
         break;
+        Fspmcfg->FirstDimmBitMaskEcc = MemCfgData->FirstDimmBitMaskEcc;
+        break;
       case PLATFORM_ID_ADL_N_DDR5_CRB:
         Fspmcfg->CpuPcieRpEnableMask = 0x0;
         Fspmcfg->Ddr4OneDpc = 0x3;
@@ -619,12 +665,13 @@ UpdateFspConfig (
         Fspmcfg->Lp5BankMode = 0x0;
         break;
       case PLATFORM_ID_ADL_N_LPDDR5_RVP:
+      case PLATFORM_ID_ADL_N_UP2PTWL:
       case PLATFORM_ID_ADL_N_UP7EN50:
+      case PLATFORM_ID_SAGE:
         Fspmcfg->DmiHweq = 0x2;
         Fspmcfg->Lp5CccConfig = 0xff;
         Fspmcfg->SkipCpuReplacementCheck = 0x0;
         break;
-      case PLATFORM_ID_ADL_N_UP2PTWL:
       case PLATFORM_ID_RPLP_LP5_AUTO_RVP:
       case PLATFORM_ID_RPLP_LP5_AUTO_CRB:
         Fspmcfg->PcieClkReqGpioMux[9] = 0x796e9000;
@@ -638,6 +685,21 @@ UpdateFspConfig (
   }
   if (PcdGetBool (PcdFastBootEnabled) && !(IsPchP ())) {
     Fspmcfg->CpuPcieRpEnableMask = 0;
+  }
+
+  //
+  // Modular HAT Configuration Override
+  //
+  if (GetPlatformId() == PLATFORM_ID_SAGE) {
+    UINT8 HatId = GetHatId();
+    UINT8 Index;
+    for (Index = 0; Index < HAT_CONFIG_COUNT; Index++) {
+       if (mHatConfigTable[Index].HatId == HatId) {
+          Fspmcfg->PcieRpEnableMask = mHatConfigTable[Index].PcieRpEnableMask;
+          DEBUG ((DEBUG_INFO, "Applied HAT Config for ID %d: PcieRpEnableMask=0x%x\n", HatId, Fspmcfg->PcieRpEnableMask));
+          break;
+       }
+    }
   }
 
   // Tcc enabling

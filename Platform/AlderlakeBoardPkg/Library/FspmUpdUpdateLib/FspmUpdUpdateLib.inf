@@ -40,6 +40,8 @@
   WatchDogTimerLib
   TccLib
   FusaConfigLib
+  SerialIoI2cLib
+  HobLib
 
 [Pcd]
   gEfiMdePkgTokenSpaceGuid.PcdPciExpressBaseAddress

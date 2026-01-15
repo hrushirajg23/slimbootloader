@@ -38,7 +38,10 @@
 #include <IndustryStandard/UefiTcgPlatform.h>
 #include <Library/TpmLib.h>
 #include <Library/FusaConfigLib.h>
+#include <Library/FusaConfigLib.h>
 #include <GpioPinsVer2Lp.h>
+#include <Library/HobLib.h>
+#include <Include/HatConfig.h>
 
 #define CPU_PCIE_DT_HALO_MAX_ROOT_PORT     3
 #define CPU_PCIE_ULT_ULX_MAX_ROOT_PORT     3
@@ -544,6 +547,27 @@ UpdateFspConfig (
       CopyMem (&FspsConfig->Usb2PhyTxiset, SiCfgData->Usb2PhyTxiset, sizeof(SiCfgData->Usb2PhyTxiset));
       CopyMem (&FspsConfig->Usb2PhyPredeemp, SiCfgData->Usb2PhyPredeemp, sizeof(SiCfgData->Usb2PhyPredeemp));
       CopyMem (&FspsConfig->Usb2PhyPehalfbit, SiCfgData->Usb2PhyPehalfbit, sizeof(SiCfgData->Usb2PhyPehalfbit));
+    }
+
+    //
+    // Modular HAT Configuration Override (FSP-S)
+    //
+    if (GetPlatformId() == PLATFORM_ID_SAGE) {
+       VOID *Hob = GetFirstGuidHob (&gHatIdHobGuid);
+       if (Hob != NULL) {
+         UINT8 HatId = *(UINT8 *)GET_GUID_HOB_DATA (Hob);
+         UINT8 i;
+         for (i = 0; i < HAT_CONFIG_COUNT; i++) {
+           if (mHatConfigTable[i].HatId == HatId) {
+             CopyMem (&FspsConfig->PortUsb20Enable, mHatConfigTable[i].PortUsb20Enable, sizeof(FspsConfig->PortUsb20Enable));
+             CopyMem (&FspsConfig->PortUsb30Enable, mHatConfigTable[i].PortUsb30Enable, sizeof(FspsConfig->PortUsb30Enable));
+             DEBUG ((DEBUG_INFO, "Applied HAT Config for ID %d: USB2/3 Ports Configured\n", HatId));
+             break;
+           }
+         }
+       } else {
+         DEBUG ((DEBUG_WARN, "HatIdHob not found!\n"));
+       }
     }
 
     //PCH Serial UART
