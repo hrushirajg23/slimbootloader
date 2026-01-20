@@ -15,3 +15,5 @@ ResetVector.*.raw
 /Conf
 /PayloadPkg/PayloadBins
 PayloadModPkg
+config.bat
+node_modules
