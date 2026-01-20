@@ -95,6 +95,7 @@
   gPlatformAlderLakeTokenSpaceGuid.PcdDisplayId
   gPlatformAlderLakeTokenSpaceGuid.PcdBoardRev
   gPlatformAlderLakeTokenSpaceGuid.PcdMemConfigId
+  gPlatformAlderLakeTokenSpaceGuid.PcdI2cHatPortNumber
 
 
 [FixedPcd]

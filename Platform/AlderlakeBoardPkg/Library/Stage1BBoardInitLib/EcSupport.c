@@ -132,6 +132,13 @@ typedef union {
   } FruEepromData;
 } FRU_EEPROM_BOARD_INFO;
 
+typedef struct {
+    UINT8 HatData[FRU_EEPROM_DATA_SIZE];
+    UINT8 BoardId;
+    UINT8 BomId;
+    UINT8 FabId;
+} HAT_INFO;
+
 /**
   Returns the BoardId ID of the platform from Smbus I/O port expander PCA9555PW.
 
@@ -379,6 +386,71 @@ GetBoardIdFromEeprom(
   PcdSet8S (PcdDisplayId,   BoardInfo.FruEepromData.InternalArea.DisplayId);
 }
 
+VOID
+EFIAPI
+GetBoardIdFromHat (
+        OUT UINT8   *PlatformId
+        )
+{
+    UINT8   BoardId = 0xFF;
+    UINT8                   I2cNumber;
+    UINT8                   SlaveAddress;
+    UINTN                   PciCfgBase;
+    EFI_STATUS              Status;
+    UINT8                   Index;
+    FRU_EEPROM_BOARD_INFO   BoardInfo;
+    HAT_INFO                BoardInfo;
+
+  I2cNumber     = PcdGet8(PcdI2cIoHatPortNumber);
+  SlaveAddress  = PcdGet8(PcdI2cHatSlaveAddress);
+  PciCfgBase    = (UINTN) SerialIoI2cPciCfgBase (I2cNumber);
+  Index         = 0;
+
+  Status = SerialIoI2cWrite (
+                    PciCfgBase,
+                    &I2cNumber,
+                    SlaveAddress,
+                    sizeof(UINT8),
+                    &Index,
+                    I2C_BUS_TIMEOUT_USEC,
+                    I2C_BUS_FREQUENCY_400Khz,
+                    NULL,
+                    TRUE,
+                    TRUE
+                    );
+  if (!EFI_ERROR(Status)) {
+    Status = SerialIoI2cRead (
+                    PciCfgBase,
+                    &I2cNumber,
+                    SlaveAddress,
+                    FRU_EEPROM_DATA_SIZE,
+                    &BoardInfo.HatData[0],
+                    I2C_BUS_TIMEOUT_USEC,
+                    I2C_BUS_FREQUENCY_400Khz,
+                    NULL,
+                    FALSE
+                    );
+  }
+
+  //
+  // Check if transaction was successuful.
+  //
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to read Board id from Hat\n"));
+    return;
+  }
+
+  *BoardID = BoardInfo.HatId;
+  DEBUG ((DEBUG_INFO, "Read Board id from FRU: 0x%x\n", *BoardID));
+  DEBUG ((DEBUG_INFO, "Read Bom id from FRU: 0x%x\n", BoardInfo.BomId));
+  DEBUG ((DEBUG_INFO, "Read Fab id from FRU is: 0x%x\n", BoardInfo.FabId));
+
+  /* PcdSet8S (PcdBoardRev,    BoardInfo.FruEepromData.InternalArea.FabId); */
+  /* PcdSet8S (PcdMemConfigId, BoardInfo.FruEepromData.InternalArea.RamConfiguration); */
+  /* PcdSet8S (PcdDisplayId,   BoardInfo.FruEepromData.InternalArea.DisplayId); */
+
+}
+
 /**
   Read Platform Id over the I2C bus.
 
@@ -399,6 +471,11 @@ GetBoardIdFromI2c (
   // No eeprom or invalid data, try reading from IO Expander
   if (BoardID == 0xFF)
     GetBoardIdFromIOExpander (&BoardID);
+
+  /*
+   * Here Since we're not using IoExpander and also not using eeprom for Board ID retrieval
+   * we'll retrieving from the hat connected via I2C , we need to write our own function here
+   */
 
   switch (BoardID) {
     case ExtendedBoardIdRplPLp5AutoRvp:

@@ -29,3 +29,7 @@
 
 [PcdsFixedAtBuild]
   gPlatformAlderLakeTokenSpaceGuid.PcdI2cFruEepromSlaveAddress  | 0x54|UINT8 |0x30000201
+   ## Below is the slave address of the controller on hat, I2C can have 128 slave, 
+   #this is a random number given to this slave
+  gPlatformAlderLakeTokenSpaceGuid.PcdI2cHatSlaveAddress  | 0x20|UINT8 |0x30000201
+
