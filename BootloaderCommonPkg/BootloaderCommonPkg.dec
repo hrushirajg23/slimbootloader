@@ -210,6 +210,9 @@
   gPlatformCommonLibTokenSpaceGuid.PcdI2cIoExpanderSlaveAddress   |0x22|UINT8|0x20000412
   gPlatformCommonLibTokenSpaceGuid.PcdI2cMaxLedSlaveAddress       |0x38|UINT8|0x20000413
 
+  ## This PCD specifies the Serial I2C port used for communication with HAT
+  gPlatformCommonLibTokenSpaceGuid.PcdI2cIoHatPortNumber     |0x0|UINT8|0x20000414
+
   ## Indicates the 16550 serial port registers are in MMIO space, or in I/O space. Default is I/O space.<BR><BR>
   #   TRUE  - 16550 serial port registers are in MMIO space.<BR>
   #   FALSE - 16550 serial port registers are in I/O space.<BR>
