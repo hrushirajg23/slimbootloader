@@ -24,6 +24,9 @@ Defines Platform BoardIds
 #define BoardIdAdlNUp2ProTWL                          0x1E
 #define PLATFORM_ID_ADL_N_UP2PTWL                     0x1E
 
+#define BoardIdSage                                   0x20
+#define PLATFORM_ID_SAGE                              0x20
+
 #define BoardIdAdlNLp5Rvp                             0x07
 #define PLATFORM_ID_ADL_N_LPDDR5_RVP                  0x07
 

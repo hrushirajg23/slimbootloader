@@ -132,11 +132,17 @@ typedef union {
   } FruEepromData;
 } FRU_EEPROM_BOARD_INFO;
 
-typedef struct {
-    UINT8 HatData[FRU_EEPROM_DATA_SIZE];
-    UINT8 BoardId;
-    UINT8 BomId;
-    UINT8 FabId;
+typedef union {
+  UINT8 Raw[FRU_EEPROM_DATA_SIZE];
+  struct {
+    UINT8  FormatVersion;
+    UINT8  Length;
+    UINT8  TypeLength;
+    UINT8  BoardId;
+    UINT8  BomId;
+    UINT8  FabId;
+    UINT8  Reserved[18];
+  } Fields;
 } HAT_INFO;
 
 /**
@@ -398,8 +404,7 @@ GetBoardIdFromHat (
     UINTN                   PciCfgBase;
     EFI_STATUS              Status;
     UINT8                   Index;
-    FRU_EEPROM_BOARD_INFO   BoardInfo;
-    HAT_INFO                BoardInfo;
+    HAT_INFO                HatInfo;
 
   I2cNumber     = PcdGet8(PcdI2cIoHatPortNumber);
   SlaveAddress  = PcdGet8(PcdI2cHatSlaveAddress);
@@ -424,7 +429,7 @@ GetBoardIdFromHat (
                     &I2cNumber,
                     SlaveAddress,
                     FRU_EEPROM_DATA_SIZE,
-                    &BoardInfo.HatData[0],
+                    &HatInfo.Raw[0],
                     I2C_BUS_TIMEOUT_USEC,
                     I2C_BUS_FREQUENCY_400Khz,
                     NULL,
@@ -440,10 +445,10 @@ GetBoardIdFromHat (
     return;
   }
 
-  *BoardID = BoardInfo.HatId;
-  DEBUG ((DEBUG_INFO, "Read Board id from FRU: 0x%x\n", *BoardID));
-  DEBUG ((DEBUG_INFO, "Read Bom id from FRU: 0x%x\n", BoardInfo.BomId));
-  DEBUG ((DEBUG_INFO, "Read Fab id from FRU is: 0x%x\n", BoardInfo.FabId));
+  *PlatformId = HatInfo.Fields.BoardId;
+  DEBUG ((DEBUG_INFO, "Read Board id from Hat: 0x%x\n", *PlatformId));
+  DEBUG ((DEBUG_INFO, "Read Bom id from Hat: 0x%x\n", HatInfo.Fields.BomId));
+  DEBUG ((DEBUG_INFO, "Read Fab id from Hat is: 0x%x\n", HatInfo.Fields.FabId));
 
   /* PcdSet8S (PcdBoardRev,    BoardInfo.FruEepromData.InternalArea.FabId); */
   /* PcdSet8S (PcdMemConfigId, BoardInfo.FruEepromData.InternalArea.RamConfiguration); */
@@ -467,10 +472,14 @@ GetBoardIdFromI2c (
 {
   UINT8       BoardID = 0xFF;
 
-  GetBoardIdFromEeprom(&BoardID);
+  // GetBoardIdFromEeprom(&BoardID);
   // No eeprom or invalid data, try reading from IO Expander
+  // if (BoardID == 0xFF)
+  //   GetBoardIdFromIOExpander (&BoardID);
+
+  // Still no ID, try reading from the custom HAT FPGA
   if (BoardID == 0xFF)
-    GetBoardIdFromIOExpander (&BoardID);
+    GetBoardIdFromHat (&BoardID);
 
   /*
    * Here Since we're not using IoExpander and also not using eeprom for Board ID retrieval
@@ -478,12 +487,16 @@ GetBoardIdFromI2c (
    */
 
   switch (BoardID) {
+    case BoardIdSage:
+      *PlatformId = PLATFORM_ID_SAGE;
+      break;
     case ExtendedBoardIdRplPLp5AutoRvp:
     case BoardIdRplPLp5AutoRvp:
       *PlatformId = PLATFORM_ID_RPLP_LP5_AUTO_RVP;
       break;
     case BoardIdRplPAutoLp5Crb:
       *PlatformId = PLATFORM_ID_RPLP_LP5_AUTO_CRB;
+      break;
     default:
     break;
   }
